@@ -566,15 +566,7 @@ public class R2Store extends AbstractStore<ByteArray, byte[], byte[]> {
 
                 String contentType = response.getHeader(CONTENT_TYPE);
                 if(entity != null) {
-                    if(contentType.equalsIgnoreCase(MULTIPART_CONTENT_TYPE)) {
-
-                        resultMap = parseGetAllResults(entity);
-                    } else {
-                        if(logger.isDebugEnabled()) {
-                            logger.debug("Did not receive a multipart response");
-                        }
-                    }
-
+                    resultMap = parseGetAllResults(entity, contentType);
                 } else {
                     if(logger.isDebugEnabled()) {
                         logger.debug("Did not get any response!");
@@ -603,7 +595,7 @@ public class R2Store extends AbstractStore<ByteArray, byte[], byte[]> {
         return resultMap;
     }
 
-    private Map<ByteArray, List<Versioned<byte[]>>> parseGetAllResults(ByteString entity) {
+    private Map<ByteArray, List<Versioned<byte[]>>> parseGetAllResults(ByteString entity, String contentType) {
         Map<ByteArray, List<Versioned<byte[]>>> results = new HashMap<ByteArray, List<Versioned<byte[]>>>();
 
         try {
@@ -612,7 +604,7 @@ public class R2Store extends AbstractStore<ByteArray, byte[], byte[]> {
             entity.copyBytes(bytes, 0);
 
             // Get the outer multipart object
-            ByteArrayDataSource ds = new ByteArrayDataSource(bytes, "multipart/mixed");
+            ByteArrayDataSource ds = new ByteArrayDataSource(bytes, contentType);
             MimeMultipart mp = new MimeMultipart(ds);
             for(int i = 0; i < mp.getCount(); i++) {
 
@@ -621,6 +613,7 @@ public class R2Store extends AbstractStore<ByteArray, byte[], byte[]> {
                 MimeBodyPart part = (MimeBodyPart) mp.getBodyPart(i);
 
                 // Get the key
+                String partContentType = part.getHeader("Content-Type")[0];
                 String contentLocation = part.getHeader("Content-Location")[0];
                 String base64Key = contentLocation.split("/")[2];
                 ByteArray key = new ByteArray(RestUtils.decodeVoldemortKey(base64Key));
@@ -652,7 +645,7 @@ public class R2Store extends AbstractStore<ByteArray, byte[], byte[]> {
                  */
 
                 ByteArrayDataSource nestedDS = new ByteArrayDataSource(part.getInputStream(),
-                                                                       "multipart/mixed");
+                                                                       partContentType);
                 MimeMultipart valueParts = new MimeMultipart(nestedDS);
 
                 for(int valueId = 0; valueId < valueParts.getCount(); valueId++) {

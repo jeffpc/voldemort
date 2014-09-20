@@ -130,7 +130,7 @@ public class GetResponseSender extends RestResponseSender {
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
 
         // Set the right headers
-        response.setHeader(CONTENT_TYPE, "multipart/binary");
+        response.setHeader(CONTENT_TYPE, message.getContentType());
         response.setHeader(CONTENT_TRANSFER_ENCODING, "binary");
         response.setHeader(CONTENT_LOCATION, contentLocationKey);
 
